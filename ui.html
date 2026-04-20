@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>ASCII Picture</title>
+    <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body data-theme="light">
+    <div class="plugin-shell">
+      <input
+        id="fileInput"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        hidden
+      />
+
+      <button id="addFileBtn" class="floating-btn add-file" type="button" title="Add file">
+        <span class="btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none"><path d="m12.593 23.258l-.011.002l-.071.035l-.02.004l-.014-.004l-.071-.035q-.016-.005-.024.005l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.017-.018m.265-.113l-.013.002l-.185.093l-.01.01l-.003.011l.018.43l.005.012l.008.007l.201.093q.019.005.029-.008l.004-.014l-.034-.614q-.005-.018-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.004-.011l.017-.43l-.003-.012l-.01-.01z"/><path fill="#fff" d="M13.586 2a2 2 0 0 1 1.284.467l.13.119L19.414 7a2 2 0 0 1 .578 1.238l.008.176V20a2 2 0 0 1-1.85 1.995L18 22H6a2 2 0 0 1-1.995-1.85L4 20V4a2 2 0 0 1 1.85-1.995L6 2zM12 4H6v16h12V10h-4.5A1.5 1.5 0 0 1 12 8.5zm0 7.5a1 1 0 0 1 1 1V14h1.5a1 1 0 1 1 0 2H13v1.5a1 1 0 1 1-2 0V16H9.5a1 1 0 1 1 0-2H11v-1.5a1 1 0 0 1 1-1m2-7.086V8h3.586z"/></g></svg>
+        </span>
+      </button>
+
+      <div class="top-right">
+        <div class="menu-wrap theme-wrap">
+          <button id="themeToggleBtn" class="icon-btn" type="button" aria-expanded="false" title="Theme">
+            <span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M9 1.75a.75.75 0 0 1 1.5 0v1.265c.45.04.89.233 1.235.578l3.536 3.536a2 2 0 0 1 0 2.828L11.028 14.2a2 2 0 0 1-2.828 0l-3.536-3.536a2 2 0 0 1 0-2.828l4.243-4.243q.045-.046.093-.087zm0 4.5v-.629l-2.89 2.89h8.245a.5.5 0 0 0-.145-.322l-3.535-3.535a.5.5 0 0 0-.175-.114v1.71a.75.75 0 1 1-1.5 0m-2.868 3.76l3.128 3.13a.5.5 0 0 0 .707 0l3.129-3.13zM6.586 14H4.5A2.5 2.5 0 0 0 2 16.5v3A2.5 2.5 0 0 0 4.5 22h15a2.5 2.5 0 0 0 2.5-2.5v-3a2.5 2.5 0 0 0-2.016-2.453q.016.161.016.328c0 .401-.065.798-.189 1.175a1 1 0 0 1 .689.95v3a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h3.835a3 3 0 0 1-.842-.593zm7.414.375c0-.493.154-.972.342-1.381c.19-.416.438-.806.674-1.134a10 10 0 0 1 .949-1.135l.005-.005a.75.75 0 0 1 1.06 0l.305.328c.176.199.412.48.65.812c.235.328.483.718.673 1.134c.188.409.342.888.342 1.381C19 15.765 17.971 17 16.5 17S14 15.765 14 14.375m2.766-1.64a8 8 0 0 0-.266-.35a8 8 0 0 0-.266.35c-.201.28-.392.585-.529.885c-.14.305-.205.56-.205.755c0 .691.48 1.125 1 1.125s1-.434 1-1.125c0-.194-.065-.45-.205-.755a5.5 5.5 0 0 0-.53-.886"/></svg>
+            </span>
+          </button>
+          <div id="themeDropdown" class="dropdown theme-dropdown" hidden>
+            <button type="button" data-theme-option="light">Light</button>
+            <button type="button" data-theme-option="dark">Dark</button>
+            <button type="button" data-theme-option="light-contrast">Light contrast</button>
+            <button type="button" data-theme-option="dark-contrast">Dark contrast</button>
+          </div>
+        </div>
+        <div class="menu-wrap">
+          <button id="menuBtn" class="icon-btn" type="button" title="Menu">
+            <span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 12h16M4 19h16"/></svg>
+            </span>
+          </button>
+          <div id="menuDropdown" class="dropdown" hidden>
+            <button id="settingsItem" type="button">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="M12.563 3.2h-1.126l-.645 2.578l-.647.2a6.3 6.3 0 0 0-1.091.452l-.599.317l-2.28-1.368l-.796.797l1.368 2.28l-.317.598a6.3 6.3 0 0 0-.453 1.091l-.199.647l-2.578.645v1.126l2.578.645l.2.647q.173.568.452 1.091l.317.599l-1.368 2.28l.797.796l2.28-1.368l.598.317q.523.278 1.091.453l.647.199l.645 2.578h1.126l.645-2.578l.647-.2a6.3 6.3 0 0 0 1.091-.452l.599-.317l2.28 1.368l.796-.797l-1.368-2.28l.317-.598q.278-.523.453-1.091l.199-.647l2.578-.645v-1.126l-2.578-.645l-.2-.647a6.3 6.3 0 0 0-.452-1.091l-.317-.599l1.368-2.28l-.797-.796l-2.28 1.368l-.598-.317a6.3 6.3 0 0 0-1.091-.453l-.647-.199zm2.945 2.17l1.833-1.1a1 1 0 0 1 1.221.15l1.018 1.018a1 1 0 0 1 .15 1.221l-1.1 1.833q.33.62.54 1.3l2.073.519a1 1 0 0 1 .757.97v1.438a1 1 0 0 1-.757.97l-2.073.519q-.21.68-.54 1.3l1.1 1.833a1 1 0 0 1-.15 1.221l-1.018 1.018a1 1 0 0 1-1.221.15l-1.833-1.1q-.62.33-1.3.54l-.519 2.073a1 1 0 0 1-.97.757h-1.438a1 1 0 0 1-.97-.757l-.519-2.073a7.5 7.5 0 0 1-1.3-.54l-1.833 1.1a1 1 0 0 1-1.221-.15L4.42 18.562a1 1 0 0 1-.15-1.221l1.1-1.833a7.5 7.5 0 0 1-.54-1.3l-2.073-.519A1 1 0 0 1 2 12.72v-1.438a1 1 0 0 1 .757-.97l2.073-.519q.21-.68.54-1.3L4.27 6.66a1 1 0 0 1 .15-1.221L5.438 4.42a1 1 0 0 1 1.221-.15l1.833 1.1q.62-.33 1.3-.54l.519-2.073A1 1 0 0 1 11.28 2h1.438a1 1 0 0 1 .97.757l.519 2.073q.68.21 1.3.54zM12 14.8a2.8 2.8 0 1 0 0-5.6a2.8 2.8 0 0 0 0 5.6m0 1.2a4 4 0 1 1 0-8a4 4 0 0 1 0 8"/></svg>
+              </span>
+              <span>Settings</span>
+            </button>
+            <button id="resetItem" type="button">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 21 21"><g fill="none" fill-rule="evenodd" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"><path d="M3.578 6.487A8 8 0 1 1 2.5 10.5"/><path d="M7.5 6.5h-4v-4"/></g></svg>
+              </span>
+              <span>Reset</span>
+            </button>
+            <button id="helpItem" type="button">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="#fff" d="M12.588 17.002q.228-.23.228-.56q0-.332-.23-.56q-.228-.228-.56-.228t-.56.229t-.227.56q0 .332.228.56q.23.228.561.228t.56-.23M11.51 13.92h.966q.038-.652.245-1.06q.207-.407.851-1.04q.67-.669.996-1.199t.327-1.226q0-1.182-.83-1.884q-.831-.702-1.966-.702q-1.079 0-1.832.586q-.753.587-1.103 1.348l.92.381q.24-.546.687-.965q.447-.42 1.29-.42q.972 0 1.42.534q.449.534.449 1.174q0 .52-.281.928q-.28.409-.73.822q-.87.802-1.14 1.36t-.269 1.363m.493 7.08q-1.866 0-3.51-.708q-1.643-.709-2.859-1.924t-1.925-2.856T3 12.003t.709-3.51Q4.417 6.85 5.63 5.634t2.857-1.925T11.997 3t3.51.709q1.643.708 2.859 1.922t1.925 2.857t.709 3.509t-.708 3.51t-1.924 2.859t-2.856 1.925t-3.509.709M12 20q3.35 0 5.675-2.325T20 12t-2.325-5.675T12 4T6.325 6.325T4 12t2.325 5.675T12 20m0-8"/></svg>
+              </span>
+              <span>Help / About</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <main class="workspace">
+        <section id="viewport" class="viewport" aria-label="ASCII viewport">
+          <div class="viewport-grid"></div>
+          <div class="viewport-frame">
+            <div class="viewport-halo"></div>
+            <div id="viewportContent" class="viewport-content">
+              <pre id="asciiOutput" class="ascii-output">// add an image to begin</pre>
+            </div>
+          </div>
+
+          <div class="viewport-badge">
+            <span id="statusBadge">Ready</span>
+          </div>
+        </section>
+
+        <section class="bottom-left">
+          <div class="vertical-stack toolbar-stack">
+            <button id="modeBtn" class="tool-btn" type="button" aria-expanded="false" title="ASCII mode">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="none" fill-rule="evenodd"><path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"/><path fill="#fff" d="M12.01 2.378a2.5 2.5 0 0 1 2.985 2.29l.005.161v.551c1.503-.3 2.9.792 2.995 2.288l.005.161v.55c1.503-.3 2.9.793 2.995 2.289l.005.162v6.53a3 3 0 0 1-2.239 2.902l-.173.04l-6.598 1.32a2.5 2.5 0 0 1-2.985-2.29L9 19.17v-.55l-.01.002a2.5 2.5 0 0 1-2.985-2.29L6 16.17v-.55l-.01.002a2.5 2.5 0 0 1-2.985-2.29L3 13.17V6.64a3 3 0 0 1 2.238-2.902l.174-.04zm6.392 7.961l-6.598 1.32a1 1 0 0 0-.804.98v6.531a.5.5 0 0 0 .598.49l6.598-1.32a1 1 0 0 0 .804-.98v-6.53a.5.5 0 0 0-.598-.49m-3-3L8.804 8.66A1 1 0 0 0 8 9.64v6.531a.5.5 0 0 0 .598.49L9 16.58v-3.94a3 3 0 0 1 2.412-2.942L16 8.78v-.95a.5.5 0 0 0-.598-.49m-3-3L5.804 5.66A1 1 0 0 0 5 6.64v6.531a.5.5 0 0 0 .598.49L6 13.58V9.64a3 3 0 0 1 2.412-2.942L13 5.78v-.95a.5.5 0 0 0-.598-.49"/></g></svg>
+              </span>
+            </button>
+            <div class="tool-popover-wrap">
+              <button id="contrastBtn" class="tool-btn" type="button" aria-expanded="false" title="Contrast">
+                <span data-icon="contrast"></span>
+              </button>
+              <div id="contrastPopover" class="control-popover tone-popover glass-panel" hidden>
+                <div class="tone-control">
+                  <span class="tone-label"><span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M12 21.997c-5.523 0-10-4.477-10-10s4.477-10 10-10s10 4.477 10 10s-4.477 10-10 10m0-2a8 8 0 1 0 0-16a8 8 0 0 0 0 16m-5-4.681a8.97 8.97 0 0 0 5.707-2.612a8.97 8.97 0 0 0 2.612-5.707q.49.326.924.757A6 6 0 1 1 7 15.316"/></svg>
+                  </span> Contrast</span>
+                  <input id="contrastSlider" type="range" min="70" max="170" value="120" step="5" />
+                </div>
+              </div>
+            </div>
+            <div class="tool-popover-wrap">
+              <button id="brightnessBtn" class="tool-btn" type="button" aria-expanded="false" title="Brightness">
+                <span data-icon="brightness"></span>
+              </button>
+              <div id="brightnessPopover" class="control-popover tone-popover glass-panel" hidden>
+                <div class="tone-control">
+                  <span class="tone-label"><span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1m.64 5l-.71.71a1 1 0 0 0 0 1.41a1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17M12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1m5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41a1 1 0 0 0 .66.29m-12-.29a1 1 0 0 0 .7.29a1 1 0 0 0 .71-.29a1 1 0 0 0 0-1.41l-.71-.71a1 1 0 0 0-1.43 1.41ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2m-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0a1 1 0 0 0 0-1.41ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5m0 9a3.5 3.5 0 1 1 3.5-3.5a3.5 3.5 0 0 1-3.5 3.5m0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1"/></svg>
+                  </span> Brightness</span>
+                  <input id="brightnessSlider" type="range" min="-40" max="40" value="0" step="2" />
+                </div>
+              </div>
+            </div>
+            <button id="invertToggle" class="tool-btn toggle-btn" type="button" aria-pressed="false" title="Invert tones">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 512 512"><path fill="#fff" d="M414.39 97.61A224 224 0 1 0 97.61 414.39A224 224 0 1 0 414.39 97.61M256 432v-96a80 80 0 0 1 0-160V80c97.05 0 176 79 176 176s-78.95 176-176 176"/><path fill="#fff" d="M336 256a80 80 0 0 0-80-80v160a80 80 0 0 0 80-80"/></svg>
+              </span>
+            </button>
+            <button id="panToolBtn" class="tool-btn pan-btn" type="button" aria-pressed="false" title="Pan tool (Space)">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256"><path fill="#fff" d="M188 48a27.75 27.75 0 0 0-12 2.71V44a28 28 0 0 0-54.65-8.6A28 28 0 0 0 80 60v64l-3.82-6.13a28 28 0 0 0-48.6 27.82c16 33.77 28.93 57.72 43.72 72.69C86.24 233.54 103.2 240 128 240a88.1 88.1 0 0 0 88-88V76a28 28 0 0 0-28-28m12 104a72.08 72.08 0 0 1-72 72c-20.38 0-33.51-4.88-45.33-16.85C69.44 193.74 57.26 171 41.9 138.58a6 6 0 0 0-.3-.58a12 12 0 0 1 20.79-12a2 2 0 0 0 .14.23l18.67 30A8 8 0 0 0 96 152V60a12 12 0 0 1 24 0v60a8 8 0 0 0 16 0V44a12 12 0 0 1 24 0v76a8 8 0 0 0 16 0V76a12 12 0 0 1 24 0Z"/></svg>
+              </span>
+            </button>
+          </div>
+
+          <div id="modePopover" class="control-popover mode-popover glass-panel" hidden>
+            <button class="mode-option" type="button" data-preset="classic">
+              <span>Classic</span>
+            </button>
+            <button class="mode-option" type="button" data-preset="bold">
+              <span>Bold</span>
+            </button>
+            <button class="mode-option" type="button" data-preset="soft">
+              <span>Soft</span>
+            </button>
+            <button class="mode-option" type="button" data-preset="block">
+              <span>Block</span>
+            </button>
+          </div>
+
+          <div class="vertical-stack preview-stack">
+            <div class="preview-panel glass-panel">
+              <button id="enlargePreviewBtn" class="mini-icon-btn preview-expand-btn" type="button" title="Open larger preview">
+                <span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"><path fill="#fff" d="m12.306 16.593l-.035 2l-6.999-.122l.123-7l2 .036l-.063 3.585l7.894-7.624l-3.532-.061l.035-2l6.999.122l-.123 7l-2-.036l.064-3.638l-7.948 7.676z"/></svg>
+                </span>
+              </button>
+              <div id="previewThumb" class="preview-thumb">
+                <div class="preview-empty">
+                  <span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><g fill="#fff"><path d="M14 3H10C6.229 3 4.343 3 3.172 4.172S2 7.229 2 11v2c0 3.771 0 5.657 1.172 6.828S6.229 21 10 21h4c3.771 0 5.657 0 6.828-1.172S22 16.771 22 13v-2c0-3.771 0-5.657-1.172-6.828S17.771 3 14 3zm-4 16c-2.591 0-4-1.409-4-4v-2c0-2.591 1.409-4 4-4h4c2.591 0 4 1.409 4 4v2c0 2.591-1.409 4-4 4zm1.5-9a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3z"/><path d="M21.5 17 16.348 11.38a1.17 1.17 0 0 0-1.69-.037L10 16l-2.16-2.16a1.16 1.16 0 0 0-1.686.049L2.5 18z"/></g></svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="zoom-stack">
+              <button id="zoomInBtn" class="tool-btn zoom-btn" type="button" title="Zoom in (+)">
+                <span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+                </span>
+              </button>
+              <button id="zoomOutBtn" class="tool-btn zoom-btn" type="button" title="Zoom out (-)">
+                <span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M18 12.998H6a1 1 0 0 1 0-2h12a1 1 0 0 1 0 2"/></svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="bottom-right">
+          <div class="split-export">
+            <button id="exportDefaultBtn" class="export-main" type="button" title="Export default TXT">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><g fill="none"><path fill="#fff" d="m12 5l-.707-.707l.707-.707l.707.707zm1 9a1 1 0 1 1-2 0zM6.293 9.293l5-5l1.414 1.414l-5 5zm6.414-5l5 5l-1.414 1.414l-5-5zM13 5v9h-2V5z"/><path stroke="#fff" stroke-width="2" d="M5 16v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1"/></g></svg>
+              </span>
+              <span>Export</span>
+            </button>
+            <div class="menu-wrap export-wrap">
+              <button id="exportMenuBtn" class="export-arrow" type="button" title="Export options">
+                <span data-icon="chevron"></span>
+              </button>
+              <div id="exportDropdown" class="dropdown export-dropdown" hidden>
+                <div class="dropdown-section">
+                  <span class="dropdown-label">Format</span>
+                <div class="segmented">
+                    <button type="button" class="segment-btn active" data-export-format="txt">
+                      <span>TXT</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-export-format="png">
+                      <span>PNG</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-export-format="svg">
+                      <span>SVG</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="dropdown-section">
+                  <span class="dropdown-label">Resolution</span>
+                  <div class="segmented">
+                    <button type="button" class="segment-btn active" data-export-scale="1">
+                      <span>1x</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-export-scale="2">
+                      <span>2x</span>
+                    </button>
+                    <button type="button" class="segment-btn" data-export-scale="4">
+                      <span>4x</span>
+                    </button>
+                  </div>
+                </div>
+                <button id="exportSelectedBtn" class="dropdown-action" type="button">
+                  <span data-icon="export"></span>
+                  <span>Export selected</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div id="settingsPanel" class="overlay-panel" hidden>
+        <div class="overlay-card glass-panel">
+          <div class="panel-head">
+            <span>Settings</span>
+            <button class="mini-icon-btn" type="button" data-close-settings title="Close">
+              <span data-icon="close"></span>
+            </button>
+          </div>
+          <label class="setting-row" title="Render ASCII while you adjust controls">
+            <span>Live render</span>
+            <input id="liveRenderToggle" type="checkbox" checked />
+          </label>
+          <p class="overlay-copy">
+            Shortcuts: Space for pan, +/- for zoom, drag and drop to load a file.
+          </p>
+        </div>
+      </div>
+
+      <div id="previewModal" class="overlay-panel" hidden>
+        <div class="overlay-backdrop" data-close-preview></div>
+        <div class="overlay-card preview-modal glass-panel">
+          <div class="panel-head">
+            <span>Source preview</span>
+            <button class="mini-icon-btn" type="button" data-close-preview title="Close">
+              <span data-icon="close"></span>
+            </button>
+          </div>
+          <div id="previewLarge" class="preview-large"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="ui.logic.js"></script>
+    <script src="ui.js"></script>
+  </body>
+</html>

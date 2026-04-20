@@ -1,0 +1,19 @@
+{
+  "name": "ASCII Art Converter",
+  "id": "your-plugin-id-unique",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": {
+    "main": "ui.html",
+    "styles": "ui.css",
+    "logic": "ui.logic.js",
+    "script": "ui.js"
+  },
+  "documentAccess": "dynamic-page",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["none"]
+  }
+}
