@@ -442,12 +442,41 @@
         </div>
       `;
       els.previewLarge.innerHTML = "";
+      els.previewLarge.style.removeProperty("width");
+      els.previewLarge.style.removeProperty("height");
       setIcon(els.previewThumb.querySelector("[data-icon]"), "image");
       return;
     }
 
     els.previewThumb.innerHTML = `<img src="${state.imageDataUrl}" alt="Source preview thumbnail" />`;
     els.previewLarge.innerHTML = `<img src="${state.imageDataUrl}" alt="Source preview" />`;
+  }
+
+  function updateToneValues() {
+    els.contrastValue.textContent = `${state.contrast}%`;
+    els.brightnessValue.textContent = state.brightness > 0 ? `+${state.brightness}` : String(state.brightness);
+  }
+
+  function syncPreviewModalSize() {
+    if (!els.previewModalCard || !els.previewLarge) return;
+
+    const image = state.imageElement;
+    if (!image || !state.imageDataUrl) {
+      els.previewLarge.style.removeProperty("width");
+      els.previewLarge.style.removeProperty("height");
+      return;
+    }
+
+    const naturalWidth = image.naturalWidth || image.width || 240;
+    const naturalHeight = image.naturalHeight || image.height || 180;
+    const maxWidth = Math.max(180, Math.min(window.innerWidth - 36, 420));
+    const maxHeight = Math.max(120, Math.min(window.innerHeight - 120, 320));
+    const scale = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight, 1);
+    const width = Math.max(120, Math.round(naturalWidth * scale));
+    const height = Math.max(90, Math.round(naturalHeight * scale));
+
+    els.previewLarge.style.width = `${width}px`;
+    els.previewLarge.style.height = `${height}px`;
   }
 
   function updateViewportText() {
@@ -573,6 +602,7 @@
       updateViewportText();
       measureAndClampViewport();
       queueRender();
+      syncPreviewModalSize();
     } catch (error) {
       console.warn(error);
       state.imageFile = null;
@@ -580,6 +610,7 @@
       state.imageElement = null;
       state.asciiText = "";
       updatePreviewThumb();
+      closePreviewModal();
       setEmptyOutput("// add an image to begin");
       setStatus("Could not load that file.", "warn");
     }
@@ -612,9 +643,11 @@
     updateModeButton();
     updateContrastButton();
     updateBrightnessButton();
+    updateToneValues();
     updatePanButton();
     updateExportButtons();
     updatePreviewThumb();
+    closePreviewModal();
     updateThemeButton();
     updateThemeOptions();
     setEmptyOutput("// add an image to begin");
@@ -766,7 +799,13 @@
       setStatus("Load an image first.", "warn");
       return;
     }
-    toggleDropdown(els.previewModal, null, true);
+    closeDropdowns();
+    syncPreviewModalSize();
+    els.previewModal.hidden = false;
+  }
+
+  function closePreviewModal() {
+    els.previewModal.hidden = true;
   }
 
   function toggleSettingsPanel() {
@@ -895,6 +934,7 @@
     els.contrastSlider.addEventListener("input", () => {
       state.contrast = Number(els.contrastSlider.value);
       updateContrastButton();
+      updateToneValues();
       if (state.liveRender) queueRender();
       else state.needsRender = true;
     });
@@ -902,6 +942,7 @@
     els.brightnessSlider.addEventListener("input", () => {
       state.brightness = Number(els.brightnessSlider.value);
       updateBrightnessButton();
+      updateToneValues();
       if (state.liveRender) queueRender();
       else state.needsRender = true;
     });
@@ -925,8 +966,8 @@
     els.enlargePreviewBtn.addEventListener("click", openPreviewModal);
     els.previewThumb.addEventListener("click", openPreviewModal);
     els.previewModal.addEventListener("click", (event) => {
-      if (event.target.hasAttribute("data-close-preview")) {
-        els.previewModal.hidden = true;
+      if (event.target.closest("[data-close-preview]")) {
+        closePreviewModal();
       }
     });
 
@@ -985,6 +1026,7 @@
     });
 
     window.addEventListener("resize", measureAndClampViewport);
+    window.addEventListener("resize", syncPreviewModalSize);
   }
 
   function initializeIcons() {
@@ -1013,9 +1055,11 @@
     els.contrastBtn = $("contrastBtn");
     els.contrastPopover = $("contrastPopover");
     els.contrastSlider = $("contrastSlider");
+    els.contrastValue = $("contrastValue");
     els.brightnessBtn = $("brightnessBtn");
     els.brightnessPopover = $("brightnessPopover");
     els.brightnessSlider = $("brightnessSlider");
+    els.brightnessValue = $("brightnessValue");
     els.invertToggle = $("invertToggle");
     els.panToolBtn = $("panToolBtn");
     els.previewThumb = $("previewThumb");
@@ -1029,6 +1073,7 @@
     els.settingsPanel = $("settingsPanel");
     els.liveRenderToggle = $("liveRenderToggle");
     els.previewModal = $("previewModal");
+    els.previewModalCard = $("previewModalCard");
     els.previewLarge = $("previewLarge");
 
     initializeIcons();
@@ -1041,12 +1086,14 @@
     updatePanButton();
     updateExportButtons();
     updatePreviewThumb();
+    updateToneValues();
     setEmptyOutput("// add an image to begin");
     setStatus("Ready.", "");
     updateViewportText();
     bindEvents();
     bindViewportPan();
     applyViewportTransform();
+    syncPreviewModalSize();
   }
 
   if (document.readyState === "loading") {
