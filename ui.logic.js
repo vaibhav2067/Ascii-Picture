@@ -1,6 +1,13 @@
 const AsciiLogic = (window.AsciiLogic = (() => {
   const FALLBACK_RAMP = "@%#*+=-:. ";
   const BLOCK_RAMP = "\u2588\u2593\u2592\u2591 ";
+  const CHAR_ASPECT = 0.56;
+  const BAYER_4X4 = [
+    0, 8, 2, 10,
+    12, 4, 14, 6,
+    3, 11, 1, 9,
+    15, 7, 13, 5,
+  ];
 
   const THEMES = {
     light: {
@@ -64,6 +71,22 @@ const AsciiLogic = (window.AsciiLogic = (() => {
     });
   }
 
+  function srgbToLinear(value) {
+    const channel = value / 255;
+    if (channel <= 0.04045) {
+      return channel / 12.92;
+    }
+    return ((channel + 0.055) / 1.055) ** 2.4;
+  }
+
+  function relativeLuminance(r, g, b) {
+    return (
+      0.2126 * srgbToLinear(r) +
+      0.7152 * srgbToLinear(g) +
+      0.0722 * srgbToLinear(b)
+    );
+  }
+
   function applyAsciiTone(state, brightness) {
     let value = brightness;
     value = (value - 128) * (state.contrast / 100) + 128;
@@ -90,18 +113,39 @@ const AsciiLogic = (window.AsciiLogic = (() => {
     return ramp[clamp(index, 0, ramp.length - 1)];
   }
 
-  function convertImageToAscii(imageElement, targetWidth, state) {
-    const aspectRatio = imageElement.naturalHeight / imageElement.naturalWidth;
-    const targetHeight = Math.max(1, Math.round(targetWidth * aspectRatio * 0.5));
+  function createCanvas(width, height) {
+    if (typeof OffscreenCanvas !== "undefined") {
+      return new OffscreenCanvas(width, height);
+    }
     const canvas = document.createElement("canvas");
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
 
+  function get2dContext(canvas) {
     const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      throw new Error("Canvas 2D context unavailable.");
+    }
+    return context;
+  }
+
+  function convertImageToAscii(imageElement, targetWidth, state) {
+    const sourceWidth = imageElement.naturalWidth || imageElement.width || 1;
+    const sourceHeight = imageElement.naturalHeight || imageElement.height || 1;
+    const aspectRatio = sourceHeight / sourceWidth;
+    const targetHeight = Math.max(1, Math.round(targetWidth * aspectRatio * CHAR_ASPECT));
+    const canvas = createCanvas(targetWidth, targetHeight);
+    const context = get2dContext(canvas);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.clearRect(0, 0, targetWidth, targetHeight);
     context.drawImage(imageElement, 0, 0, targetWidth, targetHeight);
 
     const pixels = context.getImageData(0, 0, targetWidth, targetHeight).data;
     let ascii = "";
+    const ditherAmplitude = 14;
 
     for (let y = 0; y < targetHeight; y += 1) {
       let row = "";
@@ -110,8 +154,9 @@ const AsciiLogic = (window.AsciiLogic = (() => {
         const r = pixels[index];
         const g = pixels[index + 1];
         const b = pixels[index + 2];
-        const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        row += charFromBrightness(state, brightness);
+        const brightness = relativeLuminance(r, g, b) * 255;
+        const dither = ((BAYER_4X4[(y & 3) * 4 + (x & 3)] / 15) - 0.5) * ditherAmplitude;
+        row += charFromBrightness(state, brightness + dither);
       }
       ascii += `${row}\n`;
     }
@@ -139,58 +184,69 @@ const AsciiLogic = (window.AsciiLogic = (() => {
     return `${base}.${ext}`;
   }
 
-  function buildSvgDocument(state, asciiText, scale) {
+  function getAsciiExportLayout(asciiText, scale) {
     const lines = asciiText.replace(/\n$/, "").split("\n");
     const width = Math.max(1, Math.max(...lines.map((line) => line.length), 0));
     const height = Math.max(1, lines.length);
     const fontSize = 8 * scale;
     const lineHeight = 10 * scale;
     const padding = 18 * scale;
-    const svgWidth = padding * 2 + width * fontSize * 0.62;
-    const svgHeight = padding * 2 + height * lineHeight;
+    const textWidth = width * fontSize * 0.62;
+    const textHeight = height * lineHeight;
+    return {
+      lines,
+      width,
+      height,
+      fontSize,
+      lineHeight,
+      padding,
+      canvasWidth: Math.ceil(padding * 2 + textWidth),
+      canvasHeight: Math.ceil(padding * 2 + textHeight),
+    };
+  }
+
+  function buildSvgDocument(state, asciiText, scale) {
+    const layout = getAsciiExportLayout(asciiText, scale);
     const palette = THEMES[state.theme] || THEMES.light;
 
-    const textNodes = lines
+    const textNodes = layout.lines
       .map((line, index) => {
-        const y = padding + (index + 1) * lineHeight;
-        return `<text x="${padding}" y="${y}" fill="${palette.text}" font-size="${fontSize}" font-family="monospace" xml:space="preserve">${escapeHtml(line)}</text>`;
+        const y = layout.padding + (index + 1) * layout.lineHeight;
+        return `<text x="${layout.padding}" y="${y}" fill="${palette.text}" font-size="${layout.fontSize}" font-family="monospace" xml:space="preserve">${escapeHtml(line)}</text>`;
       })
       .join("");
 
     return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(svgWidth)}" height="${Math.ceil(svgHeight)}" viewBox="0 0 ${Math.ceil(svgWidth)} ${Math.ceil(svgHeight)}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${layout.canvasWidth}" height="${layout.canvasHeight}" viewBox="0 0 ${layout.canvasWidth} ${layout.canvasHeight}">
   <rect width="100%" height="100%" fill="${palette.bg}"/>
   <g>${textNodes}</g>
 </svg>`;
   }
 
   async function exportPng(state, asciiText, scale) {
-    const lines = asciiText.replace(/\n$/, "").split("\n");
-    const width = Math.max(1, Math.max(...lines.map((line) => line.length), 0));
-    const height = Math.max(1, lines.length);
-    const fontSize = 8 * scale;
-    const lineHeight = 10 * scale;
-    const padding = 18 * scale;
-    const canvasWidth = Math.ceil(padding * 2 + width * fontSize * 0.62);
-    const canvasHeight = Math.ceil(padding * 2 + height * lineHeight);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    const context = canvas.getContext("2d");
+    const layout = getAsciiExportLayout(asciiText, scale);
+    const canvas = createCanvas(layout.canvasWidth, layout.canvasHeight);
+    const context = get2dContext(canvas);
     const palette = THEMES[state.theme] || THEMES.light;
     context.fillStyle = palette.bg;
-    context.fillRect(0, 0, canvasWidth, canvasHeight);
+    context.fillRect(0, 0, layout.canvasWidth, layout.canvasHeight);
     context.fillStyle = palette.text;
-    context.font = `${fontSize}px monospace`;
+    context.font = `${layout.fontSize}px monospace`;
     context.textBaseline = "alphabetic";
+    context.textRendering = "geometricPrecision";
 
-    lines.forEach((line, index) => {
-      const y = padding + (index + 1) * lineHeight;
-      context.fillText(line, padding, y);
+    layout.lines.forEach((line, index) => {
+      const y = layout.padding + (index + 1) * layout.lineHeight;
+      context.fillText(line, layout.padding, y);
     });
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    const blob = await new Promise((resolve) => {
+      if (typeof canvas.convertToBlob === "function") {
+        canvas.convertToBlob({ type: "image/png" }).then(resolve, () => resolve(null));
+        return;
+      }
+      canvas.toBlob(resolve, "image/png");
+    });
     if (!blob) {
       throw new Error("PNG export failed.");
     }

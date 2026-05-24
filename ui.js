@@ -21,13 +21,14 @@
     dragPanY: 0,
     liveRender: true,
     needsRender: false,
-    exportFormat: "txt",
-    exportScale: 2,
+    densityIndex: 0,
+    exportFormat: "figma-frame",
     fileToken: 0,
   };
 
   const MAX_FILE_SIZE = 4 * 1024 * 1024;
-  const ASCII_WIDTH = 72;
+  const ASCII_BASE_WIDTH = 72;
+  const DENSITY_LEVELS = [1, 2, 4, 8];
   const PRESETS = {
     classic: {
       label: "Classic",
@@ -60,17 +61,76 @@
       bg: "#111214",
       text: "#eef0f2",
     },
-    "light-contrast": {
-      label: "Light contrast",
-      bg: "#fbfaf6",
-      text: "#141311",
-    },
-    "dark-contrast": {
-      label: "Dark contrast",
-      bg: "#090a0c",
-      text: "#fbfcfd",
-    },
   };
+
+  const TOUR_STEPS = [
+    {
+      selector: "#addFileBtn",
+      title: "Load an image",
+      body: "Start by choosing a file, dragging an image into the window, or pasting from the clipboard.",
+      placement: "bottom",
+    },
+    {
+      selector: "#themeToggleBtn",
+      title: "Switch theme",
+      body: "Toggle between light and dark UI themes so the workspace stays comfortable in different lighting.",
+      placement: "bottom",
+    },
+    {
+      selector: "#modeBtn",
+      title: "Pick a mode",
+      body: "Choose Classic, Bold, Soft, or Block to change the character ramp used in the conversion.",
+      placement: "right",
+    },
+    {
+      selector: "#contrastBtn",
+      title: "Tune contrast",
+      body: "Push the contrast higher for sharper character separation or lower it for a softer render.",
+      placement: "right",
+    },
+    {
+      selector: "#brightnessBtn",
+      title: "Tune brightness",
+      body: "Shift the image lighter or darker before it is mapped into ASCII characters.",
+      placement: "right",
+    },
+    {
+      selector: "#invertToggle",
+      title: "Invert tones",
+      body: "Flip the light and dark mapping when the image reads better with the opposite tonal order.",
+      placement: "right",
+    },
+    {
+      selector: "#densityBtn",
+      title: "Change density",
+      body: "Use denser columns for more detail or lighter density for a cleaner, looser conversion.",
+      placement: "right",
+    },
+    {
+      selector: "#panToolBtn",
+      title: "Pan and zoom",
+      body: "Hold Space or enable pan mode to move the artwork. Use plus and minus keys to zoom the preview.",
+      placement: "right",
+    },
+    {
+      selector: "#previewThumb",
+      title: "Inspect the source",
+      body: "Open the larger preview when you want to confirm the input image before exporting.",
+      placement: "left",
+    },
+    {
+      selector: "#exportMenuBtn",
+      title: "Choose an export format",
+      body: "Pick TXT, PNG, SVG, or Figma Frame from the menu. The main button always uses the selected format.",
+      placement: "top",
+    },
+    {
+      selector: "#exportDefaultBtn",
+      title: "Run the export",
+      body: "Press the main export button to send the current result using the format you selected.",
+      placement: "top",
+    },
+  ];
 
   const ICONS = {
     plus: `
@@ -81,6 +141,17 @@
     theme: `
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M10.5 2.1a5.8 5.8 0 1 0 3.4 8.2A4.8 4.8 0 0 1 10.5 2.1Z" fill="currentColor"/>
+      </svg>
+    `,
+    "theme-sun": `
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="2.8" fill="currentColor"/>
+        <path d="M8 1.7v1.4M8 12.9v1.4M1.7 8h1.4M12.9 8h1.4M3.1 3.1l1 1M11.9 11.9l1 1M12.9 3.1l-1 1M4.1 11.9l-1 1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    `,
+    "theme-moon": `
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M10.7 2.5a5.8 5.8 0 1 0 2.8 9A6.6 6.6 0 0 1 10.7 2.5Z" fill="currentColor"/>
       </svg>
     `,
     menu: `
@@ -179,6 +250,12 @@
         <path d="M3 9.5v2A1.5 1.5 0 0 0 4.5 13h7A1.5 1.5 0 0 0 13 11.5v-2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
       </svg>
     `,
+    frame: `
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M3 3h10v10H3z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+        <path d="M5 6h6M5 8h6M5 10h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    `,
     chevron: `
       <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="m5 6 3 3 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
@@ -243,6 +320,11 @@
   };
 
   const els = {};
+  let currentTooltipTarget = null;
+  let currentTourIndex = 0;
+  let currentTourTarget = null;
+  let allowTourAutoOpen = true;
+  let onboardingStateKnown = false;
 
   function $(id) {
     return document.getElementById(id);
@@ -276,6 +358,352 @@
     if (el) el.innerHTML = ICONS[name] || "";
   }
 
+  function setTooltip(el, text, position = "top") {
+    if (!el || !text) return;
+    el.dataset.tooltip = text;
+    el.dataset.tooltipPos = position;
+    if (!el.getAttribute("aria-label") && !el.textContent.trim()) {
+      el.setAttribute("aria-label", text);
+    }
+  }
+
+  function inferTooltipPosition(el) {
+    if (el.closest(".top-right") || el.classList.contains("floating-btn")) {
+      return "bottom";
+    }
+    return "top";
+  }
+
+  function upgradeStaticTooltips() {
+    document.querySelectorAll("[title]").forEach((element) => {
+      const text = element.getAttribute("title");
+      if (!text) return;
+      setTooltip(element, text, inferTooltipPosition(element));
+      element.removeAttribute("title");
+    });
+  }
+
+  function ensureTooltipLayer() {
+    if (els.appTooltip) return els.appTooltip;
+    const tooltip = document.createElement("div");
+    tooltip.className = "app-tooltip";
+    tooltip.setAttribute("role", "tooltip");
+    tooltip.hidden = true;
+    document.body.appendChild(tooltip);
+    els.appTooltip = tooltip;
+    return tooltip;
+  }
+
+  function hideTooltip() {
+    const tooltip = els.appTooltip;
+    if (!tooltip) return;
+    tooltip.classList.remove("is-open");
+    tooltip.hidden = true;
+    currentTooltipTarget = null;
+  }
+
+  function positionTooltip(target) {
+    const tooltip = ensureTooltipLayer();
+    const text = target && target.dataset ? target.dataset.tooltip : "";
+    if (!text) {
+      hideTooltip();
+      return;
+    }
+
+    tooltip.textContent = text;
+    tooltip.hidden = false;
+    tooltip.classList.remove("is-open");
+
+    const rect = target.getBoundingClientRect();
+    const preferred = target.dataset.tooltipPos || inferTooltipPosition(target);
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const margin = 10;
+    const spacing = 12;
+    const spaces = {
+      top: rect.top,
+      bottom: window.innerHeight - rect.bottom,
+      left: rect.left,
+      right: window.innerWidth - rect.right,
+    };
+
+    let side = preferred;
+    if ((side === "top" && spaces.top < tooltipRect.height + spacing) || (!["top", "bottom", "left", "right"].includes(side))) {
+      side = spaces.bottom >= spaces.top ? "bottom" : "top";
+    }
+
+    if (side === "bottom" && spaces.bottom < tooltipRect.height + spacing && spaces.top > spaces.bottom) {
+      side = "top";
+    }
+
+    let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    let top = rect.top - tooltipRect.height - spacing;
+
+    if (side === "bottom") {
+      top = rect.bottom + spacing;
+    } else if (side === "left") {
+      left = rect.left - tooltipRect.width - spacing;
+      top = rect.top + rect.height / 2 - tooltipRect.height / 2;
+    } else if (side === "right") {
+      left = rect.right + spacing;
+      top = rect.top + rect.height / 2 - tooltipRect.height / 2;
+    }
+
+    left = clamp(left, margin, Math.max(margin, window.innerWidth - tooltipRect.width - margin));
+    top = clamp(top, margin, Math.max(margin, window.innerHeight - tooltipRect.height - margin));
+
+    tooltip.style.left = `${Math.round(left)}px`;
+    tooltip.style.top = `${Math.round(top)}px`;
+    tooltip.dataset.side = side;
+    tooltip.classList.add("is-open");
+    currentTooltipTarget = target;
+  }
+
+  function showTooltip(target) {
+    if (!target || !target.dataset || !target.dataset.tooltip) {
+      hideTooltip();
+      return;
+    }
+    positionTooltip(target);
+  }
+
+  function bindTooltipEvents() {
+    const findTooltipTarget = (node) => (node && node.closest ? node.closest("[data-tooltip]") : null);
+
+    document.addEventListener("pointerover", (event) => {
+      const target = findTooltipTarget(event.target);
+      if (target) {
+        showTooltip(target);
+        return;
+      }
+      hideTooltip();
+    });
+
+    document.addEventListener("pointerout", (event) => {
+      const target = findTooltipTarget(event.target);
+      if (!target || target !== currentTooltipTarget) return;
+      const related = findTooltipTarget(event.relatedTarget);
+      if (related === target) return;
+      hideTooltip();
+    });
+
+    document.addEventListener("focusin", (event) => {
+      const target = findTooltipTarget(event.target);
+      if (target) {
+        showTooltip(target);
+      }
+    });
+
+    document.addEventListener("focusout", (event) => {
+      const target = findTooltipTarget(event.target);
+      if (target && target === currentTooltipTarget) {
+        hideTooltip();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        hideTooltip();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (currentTooltipTarget) {
+        positionTooltip(currentTooltipTarget);
+      }
+    });
+  }
+
+  function updateRangeFill(input) {
+    if (!input) return;
+    const min = Number(input.min || 0);
+    const max = Number(input.max || 100);
+    const value = Number(input.value || 0);
+    const percent = ((value - min) / (max - min)) * 100;
+    input.style.setProperty("--range-progress", `${percent}%`);
+  }
+
+  function getTourStep(index = currentTourIndex) {
+    return TOUR_STEPS[Math.max(0, Math.min(index, TOUR_STEPS.length - 1))];
+  }
+
+  function setTourVisible(visible) {
+    if (!els.tourOverlay) return;
+    els.tourOverlay.hidden = !visible;
+    if (!visible) {
+      if (currentTourTarget) {
+        currentTourTarget.classList.remove("tour-target-highlight");
+      }
+      currentTourTarget = null;
+    }
+  }
+
+  function closeTour(markSeen = true) {
+    allowTourAutoOpen = false;
+    setTourVisible(false);
+    hideTooltip();
+    if (markSeen) {
+      window.parent.postMessage(
+        {
+          pluginMessage: {
+            type: "mark-onboarding-seen",
+          },
+        },
+        "*",
+      );
+    }
+  }
+
+  function positionTourCard(target, placement) {
+    if (!els.tourCard) return;
+    const rect = target.getBoundingClientRect();
+    const card = els.tourCard;
+    const padding = 12;
+    const gap = 16;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const cardRect = card.getBoundingClientRect();
+
+    const preferredSide = placement || "right";
+    const candidateSides = [preferredSide, "right", "left", "top", "bottom"].filter((side, index, list) => list.indexOf(side) === index);
+
+    const available = {
+      top: rect.top - padding,
+      bottom: viewportHeight - rect.bottom - padding,
+      left: rect.left - padding,
+      right: viewportWidth - rect.right - padding,
+    };
+
+    const buildCandidate = (side) => {
+      let left = rect.right + gap;
+      let top = rect.top + rect.height / 2 - cardRect.height / 2;
+
+      if (side === "left") {
+        left = rect.left - cardRect.width - gap;
+      } else if (side === "top") {
+        left = rect.left + rect.width / 2 - cardRect.width / 2;
+        top = rect.top - cardRect.height - gap;
+      } else if (side === "bottom") {
+        left = rect.left + rect.width / 2 - cardRect.width / 2;
+        top = rect.bottom + gap;
+      }
+
+      const clampedLeft = clamp(left, padding, Math.max(padding, viewportWidth - cardRect.width - padding));
+      const clampedTop = clamp(top, padding, Math.max(padding, viewportHeight - cardRect.height - padding));
+      const overflowLeft = Math.max(0, padding - left);
+      const overflowRight = Math.max(0, left + cardRect.width - (viewportWidth - padding));
+      const overflowTop = Math.max(0, padding - top);
+      const overflowBottom = Math.max(0, top + cardRect.height - (viewportHeight - padding));
+      const score = overflowLeft + overflowRight + overflowTop + overflowBottom;
+
+      return {
+        side,
+        left: clampedLeft,
+        top: clampedTop,
+        score,
+        distanceFromTarget: Math.abs(clampedLeft - left) + Math.abs(clampedTop - top),
+        fits:
+          left >= padding &&
+          top >= padding &&
+          left + cardRect.width <= viewportWidth - padding &&
+          top + cardRect.height <= viewportHeight - padding,
+      };
+    };
+
+    const rankedCandidates = candidateSides
+      .map((side) => {
+        const candidate = buildCandidate(side);
+        const space = available[side] ?? 0;
+        return {
+          ...candidate,
+          priority: side === preferredSide ? 0 : 1,
+          space,
+        };
+      })
+      .sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        if (a.fits !== b.fits) return a.fits ? -1 : 1;
+        if (a.score !== b.score) return a.score - b.score;
+        if (b.space !== a.space) return b.space - a.space;
+        return a.distanceFromTarget - b.distanceFromTarget;
+      });
+
+    const chosen = rankedCandidates[0] || buildCandidate(preferredSide);
+    card.dataset.placement = chosen.side;
+    card.style.left = `${Math.round(chosen.left)}px`;
+    card.style.top = `${Math.round(chosen.top)}px`;
+  }
+
+  function positionTourSpotlight(target) {
+    if (!els.tourSpotlight) return;
+    const rect = target.getBoundingClientRect();
+    const padding = 6;
+    const borderRadius = window.getComputedStyle(target).borderRadius || "12px";
+    els.tourSpotlight.style.left = `${Math.max(0, Math.round(rect.left - padding))}px`;
+    els.tourSpotlight.style.top = `${Math.max(0, Math.round(rect.top - padding))}px`;
+    els.tourSpotlight.style.width = `${Math.max(0, Math.round(rect.width + padding * 2))}px`;
+    els.tourSpotlight.style.height = `${Math.max(0, Math.round(rect.height + padding * 2))}px`;
+    els.tourSpotlight.style.borderRadius = borderRadius;
+  }
+
+  function updateTourUI() {
+    const step = getTourStep();
+    if (!step) return;
+    const total = TOUR_STEPS.length;
+    const stepNumber = currentTourIndex + 1;
+    const target = document.querySelector(step.selector);
+    if (!target) {
+      const nextIndex = currentTourIndex + 1;
+      if (nextIndex < total) {
+        currentTourIndex = nextIndex;
+        updateTourUI();
+        return;
+      }
+      closeTour(true);
+      return;
+    }
+
+    if (currentTourTarget && currentTourTarget !== target) {
+      currentTourTarget.classList.remove("tour-target-highlight");
+    }
+    currentTourTarget = target;
+    target.classList.add("tour-target-highlight");
+
+    if (els.tourTitle) els.tourTitle.textContent = step.title;
+    if (els.tourBody) els.tourBody.textContent = step.body;
+    if (els.tourStepLabel) els.tourStepLabel.textContent = `Step ${stepNumber} of ${total}`;
+    if (els.tourProgressFill) els.tourProgressFill.style.width = `${(stepNumber / total) * 100}%`;
+    if (els.tourBackBtn) els.tourBackBtn.disabled = currentTourIndex === 0;
+    if (els.tourNextBtn) els.tourNextBtn.textContent = currentTourIndex === total - 1 ? "Finish" : "Next";
+
+    setTourVisible(true);
+    requestAnimationFrame(() => {
+      positionTourSpotlight(target);
+      positionTourCard(target, step.placement);
+    });
+  }
+
+  function startTour(fromStart = true) {
+    closeDropdowns(true);
+    hideTooltip();
+    currentTourIndex = fromStart ? 0 : Math.max(0, currentTourIndex);
+    updateTourUI();
+  }
+
+  function goToNextTourStep() {
+    if (currentTourIndex >= TOUR_STEPS.length - 1) {
+      closeTour(true);
+      return;
+    }
+    currentTourIndex += 1;
+    updateTourUI();
+  }
+
+  function goToPreviousTourStep() {
+    if (currentTourIndex <= 0) return;
+    currentTourIndex -= 1;
+    updateTourUI();
+  }
+
   function setStatus(message, tone = "") {
     els.statusBadge.textContent = message;
     els.statusBadge.dataset.tone = tone;
@@ -298,18 +726,21 @@
     }
   }
 
+  function normalizeTheme(theme) {
+    return String(theme).startsWith("dark") ? "dark" : "light";
+  }
+
   function loadTheme() {
     try {
       const saved = localStorage.getItem("ascii-picture-theme");
-      if (saved && THEMES[saved]) {
-        state.theme = saved;
+      if (saved) {
+        state.theme = normalizeTheme(saved);
       }
     } catch {
       // No-op.
     }
     document.body.dataset.theme = state.theme;
     updateThemeButton();
-    updateThemeOptions();
   }
 
   function applyTheme(theme, shouldPersist = true) {
@@ -320,29 +751,25 @@
       persistTheme();
     }
     updateThemeButton();
-    updateThemeOptions();
     measureAndClampViewport();
   }
 
   function updateThemeButton() {
-    setIcon(els.themeToggleBtn.querySelector("[data-icon]"), "theme");
-    els.themeToggleBtn.title = `Theme: ${THEMES[state.theme].label}`;
+    const isDark = state.theme === "dark";
+    els.themeToggleBtn.classList.toggle("is-dark", isDark);
+    els.themeToggleBtn.setAttribute("aria-pressed", isDark ? "true" : "false");
+    els.themeToggleLabel.textContent = isDark ? "Dark" : "Light";
+    setTooltip(els.themeToggleBtn, `Switch to ${isDark ? "light" : "dark"} mode`, "bottom");
   }
 
-  function updateThemeOptions() {
-    document.querySelectorAll("[data-theme-option]").forEach((button) => {
-      const active = button.dataset.themeOption === state.theme;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", active ? "true" : "false");
-    });
-  }
-
-  function closeDropdowns() {
+  function closeDropdowns(skipTour = false) {
     els.menuDropdown.hidden = true;
     els.exportDropdown.hidden = true;
-    els.themeDropdown.hidden = true;
-    els.themeToggleBtn.setAttribute("aria-expanded", "false");
     els.settingsPanel.hidden = true;
+    hideTooltip();
+    if (!skipTour) {
+      closeTour(false);
+    }
     if (els.modePopover) {
       els.modePopover.hidden = true;
       els.modeBtn.setAttribute("aria-expanded", "false");
@@ -421,17 +848,60 @@
     els.panToolBtn.setAttribute("aria-pressed", active ? "true" : "false");
   }
 
+  function updateDensityButton() {
+    const scale = DENSITY_LEVELS[state.densityIndex] || 1;
+    const columns = ASCII_BASE_WIDTH * scale;
+    els.densityLabel.textContent = `${scale}x`;
+    els.densityBtn.setAttribute("aria-pressed", scale === 1 ? "false" : "true");
+    setTooltip(els.densityBtn, `Column density ${scale}x, ${columns} columns`, "top");
+  }
+
+  function cycleDensity() {
+    state.densityIndex = (state.densityIndex + 1) % DENSITY_LEVELS.length;
+    updateDensityButton();
+    const scale = DENSITY_LEVELS[state.densityIndex] || 1;
+    setStatus(`Density set to ${scale}x (${ASCII_BASE_WIDTH * scale} cols).`, "");
+    queueRender();
+  }
+
   function updateExportButtons() {
     document.querySelectorAll("[data-export-format]").forEach((button) => {
       const active = button.dataset.exportFormat === state.exportFormat;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    document.querySelectorAll("[data-export-scale]").forEach((button) => {
-      const active = Number(button.dataset.exportScale) === state.exportScale;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", active ? "true" : "false");
-    });
+    const exportLabels = {
+      txt: "TXT",
+      png: "PNG",
+      svg: "SVG",
+      "figma-frame": "Figma Frame",
+    };
+    const exportIcons = {
+      txt: "txt",
+      png: "png",
+      svg: "svg",
+      "figma-frame": "frame",
+    };
+    const selectedLabel = exportLabels[state.exportFormat] || "Figma Frame";
+    const selectedIcon = exportIcons[state.exportFormat] || "frame";
+    if (els.exportMainLabel) {
+      els.exportMainLabel.textContent = `Export ${selectedLabel}`;
+    }
+    if (els.exportSelectedLabel) {
+      els.exportSelectedLabel.textContent = `Export ${selectedLabel}`;
+    }
+    if (els.exportMainIcon) {
+      setIcon(els.exportMainIcon, selectedIcon);
+    }
+    if (els.exportSelectedIcon) {
+      setIcon(els.exportSelectedIcon, selectedIcon);
+    }
+    if (els.exportDefaultBtn) {
+      setTooltip(els.exportDefaultBtn, `Export current format: ${selectedLabel}`, "top");
+    }
+    if (els.exportSelectedBtn) {
+      setTooltip(els.exportSelectedBtn, `Export as ${selectedLabel}`, "top");
+    }
   }
 
   function updatePreviewThumb() {
@@ -455,6 +925,8 @@
   function updateToneValues() {
     els.contrastValue.textContent = `${state.contrast}%`;
     els.brightnessValue.textContent = state.brightness > 0 ? `+${state.brightness}` : String(state.brightness);
+    updateRangeFill(els.contrastSlider);
+    updateRangeFill(els.brightnessSlider);
   }
 
   function syncPreviewModalSize() {
@@ -492,8 +964,14 @@
     const viewport = els.viewport.getBoundingClientRect();
     const contentWidth = els.asciiOutput.scrollWidth || 1;
     const contentHeight = els.asciiOutput.scrollHeight || 1;
-    const scaledWidth = contentWidth * state.zoom;
-    const scaledHeight = contentHeight * state.zoom;
+    const fitScale = Math.min(
+      (viewport.width - 24) / contentWidth,
+      (viewport.height - 24) / contentHeight,
+      1
+    );
+    const contentScale = state.zoom * fitScale;
+    const scaledWidth = contentWidth * contentScale;
+    const scaledHeight = contentHeight * contentScale;
 
     const maxX = Math.max(0, (scaledWidth - viewport.width) / 2);
     const maxY = Math.max(0, (scaledHeight - viewport.height) / 2);
@@ -501,6 +979,8 @@
     state.panY = clamp(state.panY, -maxY, maxY);
 
     els.viewportContent.style.setProperty("--zoom", String(state.zoom));
+    els.viewportContent.style.setProperty("--fit-scale", String(fitScale));
+    els.viewportContent.style.setProperty("--content-scale", String(contentScale));
     els.viewportContent.style.setProperty("--pan-x", `${state.panX}px`);
     els.viewportContent.style.setProperty("--pan-y", `${state.panY}px`);
   }
@@ -551,7 +1031,8 @@
       clearEmptyOutput();
       setStatus("Rendering ASCII...", "");
       await new Promise((resolve) => setTimeout(resolve, 8));
-      const result = AsciiLogic.convertImageToAscii(state.imageElement, ASCII_WIDTH, state);
+      const scale = DENSITY_LEVELS[state.densityIndex] || 1;
+      const result = AsciiLogic.convertImageToAscii(state.imageElement, ASCII_BASE_WIDTH * scale, state);
       state.asciiText = result.ascii;
       els.asciiOutput.textContent = result.ascii;
       setStatus(`${result.columns} cols x ${result.rows} rows`, "success");
@@ -631,6 +1112,7 @@
     state.panToolActive = false;
     state.isSpaceHeld = false;
     state.needsRender = false;
+    state.densityIndex = 0;
 
     els.fileInput.value = "";
     els.contrastSlider.value = String(state.contrast);
@@ -645,11 +1127,11 @@
     updateBrightnessButton();
     updateToneValues();
     updatePanButton();
+    updateDensityButton();
     updateExportButtons();
     updatePreviewThumb();
     closePreviewModal();
     updateThemeButton();
-    updateThemeOptions();
     setEmptyOutput("// add an image to begin");
     setStatus("Reset complete.", "");
     measureAndClampViewport();
@@ -683,13 +1165,7 @@
   }
 
   function exportDefaultAscii() {
-    if (!state.asciiText.trim()) {
-      setStatus("Nothing to export yet.", "warn");
-      return;
-    }
-    closeDropdowns();
-    exportText(getExportBaseName("txt"), state.asciiText, "text/plain;charset=utf-8");
-    setStatus("TXT exported.", "success");
+    exportSelected();
   }
 
   function buildSvgDocument(scale) {
@@ -703,7 +1179,7 @@
     }
     closeDropdowns();
     exportText(getExportBaseName("svg"), buildSvgDocument(scale), "image/svg+xml;charset=utf-8");
-    setStatus(`SVG exported at ${scale}x.`, "success");
+    setStatus("SVG exported.", "success");
   }
 
   async function exportPng(scale) {
@@ -715,24 +1191,53 @@
 
     try {
       await AsciiLogic.exportPng(state, state.asciiText, scale);
-      setStatus(`PNG exported at ${scale}x.`, "success");
+      setStatus("PNG exported.", "success");
     } catch (error) {
       console.warn(error);
       setStatus("PNG export failed.", "warn");
     }
   }
 
+  function exportFigmaFrame() {
+    if (!state.asciiText.trim()) {
+      setStatus("Nothing to export yet.", "warn");
+      return;
+    }
+
+    closeDropdowns();
+    window.parent.postMessage(
+      {
+        pluginMessage: {
+          type: "insert-ascii-frame",
+          asciiText: state.asciiText,
+          theme: state.theme,
+        },
+      },
+      "*",
+    );
+    setStatus("Figma frame sent to canvas.", "success");
+  }
+
   function exportSelected() {
-    const scale = state.exportScale;
     if (state.exportFormat === "txt") {
-      exportDefaultAscii();
+      if (!state.asciiText.trim()) {
+        setStatus("Nothing to export yet.", "warn");
+        return;
+      }
+      closeDropdowns();
+      exportText(getExportBaseName("txt"), state.asciiText, "text/plain;charset=utf-8");
+      setStatus("TXT exported.", "success");
       return;
     }
     if (state.exportFormat === "svg") {
-      exportSvg(scale);
+      exportSvg(1);
       return;
     }
-    exportPng(scale);
+    if (state.exportFormat === "figma-frame") {
+      exportFigmaFrame();
+      return;
+    }
+    exportPng(1);
   }
 
   function updateZoom(delta) {
@@ -854,15 +1359,9 @@
 
     els.themeToggleBtn.addEventListener("click", (event) => {
       event.stopPropagation();
-      toggleDropdown(els.themeDropdown, els.themeToggleBtn);
-    });
-
-    document.querySelectorAll("[data-theme-option]").forEach((button) => {
-      button.addEventListener("click", () => {
-        closeDropdowns();
-        applyTheme(button.dataset.themeOption);
-        setStatus(`${THEMES[state.theme].label} theme enabled.`, "");
-      });
+      closeDropdowns();
+      applyTheme(state.theme === "dark" ? "light" : "dark");
+      setStatus(`${THEMES[state.theme].label} theme enabled.`, "");
     });
 
     els.menuBtn.addEventListener("click", (event) => {
@@ -882,23 +1381,20 @@
     });
     els.helpItem.addEventListener("click", () => {
       closeDropdowns();
-      els.settingsPanel.hidden = false;
-      setStatus("Help opened.", "");
+      startTour(true);
+      setStatus("Tour opened.", "");
     });
 
     els.exportDefaultBtn.addEventListener("click", exportDefaultAscii);
     els.exportSelectedBtn.addEventListener("click", exportSelected);
 
+    els.densityBtn.addEventListener("click", () => {
+      cycleDensity();
+    });
+
     document.querySelectorAll("[data-export-format]").forEach((button) => {
       button.addEventListener("click", () => {
         state.exportFormat = button.dataset.exportFormat;
-        updateExportButtons();
-      });
-    });
-
-    document.querySelectorAll("[data-export-scale]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.exportScale = Number(button.dataset.exportScale);
         updateExportButtons();
       });
     });
@@ -984,6 +1480,32 @@
       });
     });
 
+    document.querySelectorAll("[data-tour-skip]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeTour(true);
+      });
+    });
+
+    if (els.tourOverlay) {
+      els.tourOverlay.addEventListener("click", (event) => {
+        if (event.target.closest("[data-tour-dismiss]")) {
+          closeTour(true);
+        }
+      });
+    }
+
+    if (els.tourBackBtn) {
+      els.tourBackBtn.addEventListener("click", () => {
+        goToPreviousTourStep();
+      });
+    }
+
+    if (els.tourNextBtn) {
+      els.tourNextBtn.addEventListener("click", () => {
+        goToNextTourStep();
+      });
+    }
+
     document.addEventListener("pointerdown", (event) => {
       const insideMenu = event.target.closest(".menu-wrap");
       const insideDropdown = event.target.closest(".dropdown");
@@ -1027,6 +1549,16 @@
 
     window.addEventListener("resize", measureAndClampViewport);
     window.addEventListener("resize", syncPreviewModalSize);
+    window.addEventListener("resize", () => {
+      if (currentTourTarget) {
+        const step = getTourStep();
+        if (!step) return;
+        requestAnimationFrame(() => {
+          positionTourSpotlight(currentTourTarget);
+          positionTourCard(currentTourTarget, step.placement);
+        });
+      }
+    });
   }
 
   function initializeIcons() {
@@ -1036,11 +1568,36 @@
     });
   }
 
+  function requestOnboardingState() {
+    window.parent.postMessage(
+      {
+        pluginMessage: {
+          type: "get-onboarding-state",
+        },
+      },
+      "*",
+    );
+  }
+
+  function bindPluginMessages() {
+    window.addEventListener("message", (event) => {
+      const msg = event.data && event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === "onboarding-state") {
+        onboardingStateKnown = true;
+        if (!msg.seen && allowTourAutoOpen) {
+          setTimeout(() => startTour(true), 180);
+        }
+      }
+    });
+  }
+
   function init() {
     els.fileInput = $("fileInput");
     els.addFileBtn = $("addFileBtn");
     els.themeToggleBtn = $("themeToggleBtn");
-    els.themeDropdown = $("themeDropdown");
+    els.themeToggleLabel = $("themeToggleLabel");
     els.menuBtn = $("menuBtn");
     els.menuDropdown = $("menuDropdown");
     els.settingsItem = $("settingsItem");
@@ -1062,21 +1619,39 @@
     els.brightnessValue = $("brightnessValue");
     els.invertToggle = $("invertToggle");
     els.panToolBtn = $("panToolBtn");
+    els.densityBtn = $("densityBtn");
+    els.densityLabel = $("densityLabel");
     els.previewThumb = $("previewThumb");
     els.enlargePreviewBtn = $("enlargePreviewBtn");
     els.zoomInBtn = $("zoomInBtn");
     els.zoomOutBtn = $("zoomOutBtn");
     els.exportDefaultBtn = $("exportDefaultBtn");
+    els.exportMainIcon = $("exportMainIcon");
+    els.exportMainLabel = $("exportMainLabel");
     els.exportMenuBtn = $("exportMenuBtn");
     els.exportDropdown = $("exportDropdown");
     els.exportSelectedBtn = $("exportSelectedBtn");
+    els.exportSelectedIcon = $("exportSelectedIcon");
+    els.exportSelectedLabel = $("exportSelectedLabel");
     els.settingsPanel = $("settingsPanel");
+    els.tourOverlay = $("tourOverlay");
+    els.tourCard = $("tourCard");
+    els.tourSpotlight = $("tourSpotlight");
+    els.tourTitle = $("tourTitle");
+    els.tourBody = $("tourBody");
+    els.tourStepLabel = $("tourStepLabel");
+    els.tourProgressFill = $("tourProgressFill");
+    els.tourBackBtn = $("tourBackBtn");
+    els.tourNextBtn = $("tourNextBtn");
     els.liveRenderToggle = $("liveRenderToggle");
     els.previewModal = $("previewModal");
     els.previewModalCard = $("previewModalCard");
     els.previewLarge = $("previewLarge");
 
     initializeIcons();
+    bindPluginMessages();
+    upgradeStaticTooltips();
+    bindTooltipEvents();
     loadTheme();
     updatePresetButtons();
     updateInvertButton();
@@ -1084,6 +1659,7 @@
     updateContrastButton();
     updateBrightnessButton();
     updatePanButton();
+    updateDensityButton();
     updateExportButtons();
     updatePreviewThumb();
     updateToneValues();
@@ -1094,6 +1670,12 @@
     bindViewportPan();
     applyViewportTransform();
     syncPreviewModalSize();
+    requestOnboardingState();
+    window.setTimeout(() => {
+      if (!onboardingStateKnown) {
+        allowTourAutoOpen = false;
+      }
+    }, 2000);
   }
 
   if (document.readyState === "loading") {
