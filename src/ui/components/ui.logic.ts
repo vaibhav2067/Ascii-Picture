@@ -2,12 +2,7 @@ const AsciiLogic = (window.AsciiLogic = (() => {
   const FALLBACK_RAMP = "@%#*+=-:. ";
   const BLOCK_RAMP = "\u2588\u2593\u2592\u2591 ";
   const CHAR_ASPECT = 0.56;
-  const BAYER_4X4 = [
-    0, 8, 2, 10,
-    12, 4, 14, 6,
-    3, 11, 1, 9,
-    15, 7, 13, 5,
-  ];
+  const BAYER_4X4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 
   const THEMES = {
     light: {
@@ -135,7 +130,10 @@ const AsciiLogic = (window.AsciiLogic = (() => {
     const sourceWidth = imageElement.naturalWidth || imageElement.width || 1;
     const sourceHeight = imageElement.naturalHeight || imageElement.height || 1;
     const aspectRatio = sourceHeight / sourceWidth;
-    const targetHeight = Math.max(1, Math.round(targetWidth * aspectRatio * CHAR_ASPECT));
+    const targetHeight = Math.max(
+      1,
+      Math.round(targetWidth * aspectRatio * CHAR_ASPECT),
+    );
     const canvas = createCanvas(targetWidth, targetHeight);
     const context = get2dContext(canvas);
     context.imageSmoothingEnabled = true;
@@ -155,7 +153,8 @@ const AsciiLogic = (window.AsciiLogic = (() => {
         const g = pixels[index + 1];
         const b = pixels[index + 2];
         const brightness = relativeLuminance(r, g, b) * 255;
-        const dither = ((BAYER_4X4[(y & 3) * 4 + (x & 3)] / 15) - 0.5) * ditherAmplitude;
+        const dither =
+          (BAYER_4X4[(y & 3) * 4 + (x & 3)] / 15 - 0.5) * ditherAmplitude;
         row += charFromBrightness(state, brightness + dither);
       }
       ascii += `${row}\n`;
@@ -180,7 +179,9 @@ const AsciiLogic = (window.AsciiLogic = (() => {
   }
 
   function getExportBaseName(state, ext) {
-    const base = (state.imageFile && state.imageFile.name.replace(/\.[^.]+$/, "")) || "ascii-output";
+    const base =
+      (state.imageFile && state.imageFile.name.replace(/\.[^.]+$/, "")) ||
+      "ascii-output";
     return `${base}.${ext}`;
   }
 
@@ -242,7 +243,9 @@ const AsciiLogic = (window.AsciiLogic = (() => {
 
     const blob = await new Promise((resolve) => {
       if (typeof canvas.convertToBlob === "function") {
-        canvas.convertToBlob({ type: "image/png" }).then(resolve, () => resolve(null));
+        canvas
+          .convertToBlob({ type: "image/png" })
+          .then(resolve, () => resolve(null));
         return;
       }
       canvas.toBlob(resolve, "image/png");

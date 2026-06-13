@@ -1,11 +1,6 @@
 // This runs in the Figma environment (separate from UI)
 const ONBOARDING_STORAGE_KEY = "ascii-picture-onboarding-seen";
 
-function extractTagContent(html, tagName) {
-  const match = html.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)</${tagName}>`, "i"));
-  return match ? match[1] : "";
-}
-
 function hexToRgb(hex) {
   const value = hex.replace("#", "");
   const parsed = Number.parseInt(value, 16);
@@ -57,29 +52,7 @@ async function insertAsciiFrame(msg) {
   figma.viewport.scrollAndZoomIntoView([frame]);
 }
 
-const uiBody = extractTagContent(__uiFiles__.main, "body") || __uiFiles__.main;
-const uiTitle = extractTagContent(__uiFiles__.main, "title") || "ASCII Art Converter | Figma Plugin";
-
-figma.showUI(
-  `<!doctype html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no"
-      />
-      <title>${uiTitle}</title>
-      <style>${__uiFiles__.styles}</style>
-    </head>
-    <body>
-    ${uiBody}
-    <script>${__uiFiles__.logic}</script>
-    <script>${__uiFiles__.script}</script>
-    </body>
-  </html>`,
-  { width: 600, height: 600, themeColors: true },
-);
+figma.showUI(__html__, { width: 600, height: 600, themeColors: true });
 
 // Listen for messages from the UI
 figma.ui.onmessage = async (msg) => {
