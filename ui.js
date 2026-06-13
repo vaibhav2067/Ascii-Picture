@@ -766,6 +766,9 @@
     els.menuDropdown.hidden = true;
     els.exportDropdown.hidden = true;
     els.settingsPanel.hidden = true;
+    if (els.versionPanel) {
+      els.versionPanel.hidden = true;
+    }
     hideTooltip();
     if (!skipTour) {
       closeTour(false);
@@ -787,6 +790,22 @@
       updateContrastButton();
       updateBrightnessButton();
     }
+  }
+
+  function openExternalLink(url) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function toggleVersionPanel(force) {
+    const shouldOpen = typeof force === "boolean" ? force : els.versionPanel.hidden;
+    closeDropdowns();
+    els.versionPanel.hidden = !shouldOpen;
   }
 
   function toggleDropdown(dropdown, trigger, force) {
@@ -1384,6 +1403,20 @@
       startTour(true);
       setStatus("Tour opened.", "");
     });
+    els.joinUsItem.addEventListener("click", () => {
+      closeDropdowns();
+      openExternalLink("https://discord.gg/Y24autEQG9");
+      setStatus("Join Us opened in a new tab.", "");
+    });
+    els.communityItem.addEventListener("click", () => {
+      closeDropdowns();
+      openExternalLink("https://www.figma.com/@dimastudio");
+      setStatus("Community opened in a new tab.", "");
+    });
+    els.versionNoteItem.addEventListener("click", () => {
+      toggleVersionPanel(true);
+      setStatus("Version note opened.", "");
+    });
 
     els.exportDefaultBtn.addEventListener("click", exportDefaultAscii);
     els.exportSelectedBtn.addEventListener("click", exportSelected);
@@ -1477,6 +1510,12 @@
     document.querySelectorAll("[data-close-settings]").forEach((button) => {
       button.addEventListener("click", () => {
         els.settingsPanel.hidden = true;
+      });
+    });
+
+    document.querySelectorAll("[data-close-version]").forEach((button) => {
+      button.addEventListener("click", () => {
+        els.versionPanel.hidden = true;
       });
     });
 
@@ -1603,6 +1642,9 @@
     els.settingsItem = $("settingsItem");
     els.resetItem = $("resetItem");
     els.helpItem = $("helpItem");
+    els.joinUsItem = $("joinUsItem");
+    els.communityItem = $("communityItem");
+    els.versionNoteItem = $("versionNoteItem");
     els.viewport = $("viewport");
     els.viewportContent = $("viewportContent");
     els.asciiOutput = $("asciiOutput");
@@ -1634,6 +1676,7 @@
     els.exportSelectedIcon = $("exportSelectedIcon");
     els.exportSelectedLabel = $("exportSelectedLabel");
     els.settingsPanel = $("settingsPanel");
+    els.versionPanel = $("versionPanel");
     els.tourOverlay = $("tourOverlay");
     els.tourCard = $("tourCard");
     els.tourSpotlight = $("tourSpotlight");
