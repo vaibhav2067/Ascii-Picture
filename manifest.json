@@ -1,14 +1,9 @@
 {
   "name": "ASCII Art Converter",
-  "id": "your-plugin-id-unique",
+  "id": "1640690031310909125",
   "api": "1.0.0",
-  "main": "code.js",
-  "ui": {
-    "main": "ui.html",
-    "styles": "ui.css",
-    "logic": "ui.logic.js",
-    "script": "ui.js"
-  },
+  "main": "dist/code.js",
+  "ui": "dist/index.html",
   "documentAccess": "dynamic-page",
   "capabilities": [],
   "enableProposedApi": false,

@@ -427,11 +427,18 @@
     };
 
     let side = preferred;
-    if ((side === "top" && spaces.top < tooltipRect.height + spacing) || (!["top", "bottom", "left", "right"].includes(side))) {
+    if (
+      (side === "top" && spaces.top < tooltipRect.height + spacing) ||
+      !["top", "bottom", "left", "right"].includes(side)
+    ) {
       side = spaces.bottom >= spaces.top ? "bottom" : "top";
     }
 
-    if (side === "bottom" && spaces.bottom < tooltipRect.height + spacing && spaces.top > spaces.bottom) {
+    if (
+      side === "bottom" &&
+      spaces.bottom < tooltipRect.height + spacing &&
+      spaces.top > spaces.bottom
+    ) {
       side = "top";
     }
 
@@ -448,8 +455,16 @@
       top = rect.top + rect.height / 2 - tooltipRect.height / 2;
     }
 
-    left = clamp(left, margin, Math.max(margin, window.innerWidth - tooltipRect.width - margin));
-    top = clamp(top, margin, Math.max(margin, window.innerHeight - tooltipRect.height - margin));
+    left = clamp(
+      left,
+      margin,
+      Math.max(margin, window.innerWidth - tooltipRect.width - margin),
+    );
+    top = clamp(
+      top,
+      margin,
+      Math.max(margin, window.innerHeight - tooltipRect.height - margin),
+    );
 
     tooltip.style.left = `${Math.round(left)}px`;
     tooltip.style.top = `${Math.round(top)}px`;
@@ -467,7 +482,8 @@
   }
 
   function bindTooltipEvents() {
-    const findTooltipTarget = (node) => (node && node.closest ? node.closest("[data-tooltip]") : null);
+    const findTooltipTarget = (node) =>
+      node && node.closest ? node.closest("[data-tooltip]") : null;
 
     document.addEventListener("pointerover", (event) => {
       const target = findTooltipTarget(event.target);
@@ -564,7 +580,13 @@
     const cardRect = card.getBoundingClientRect();
 
     const preferredSide = placement || "right";
-    const candidateSides = [preferredSide, "right", "left", "top", "bottom"].filter((side, index, list) => list.indexOf(side) === index);
+    const candidateSides = [
+      preferredSide,
+      "right",
+      "left",
+      "top",
+      "bottom",
+    ].filter((side, index, list) => list.indexOf(side) === index);
 
     const available = {
       top: rect.top - padding,
@@ -587,12 +609,26 @@
         top = rect.bottom + gap;
       }
 
-      const clampedLeft = clamp(left, padding, Math.max(padding, viewportWidth - cardRect.width - padding));
-      const clampedTop = clamp(top, padding, Math.max(padding, viewportHeight - cardRect.height - padding));
+      const clampedLeft = clamp(
+        left,
+        padding,
+        Math.max(padding, viewportWidth - cardRect.width - padding),
+      );
+      const clampedTop = clamp(
+        top,
+        padding,
+        Math.max(padding, viewportHeight - cardRect.height - padding),
+      );
       const overflowLeft = Math.max(0, padding - left);
-      const overflowRight = Math.max(0, left + cardRect.width - (viewportWidth - padding));
+      const overflowRight = Math.max(
+        0,
+        left + cardRect.width - (viewportWidth - padding),
+      );
       const overflowTop = Math.max(0, padding - top);
-      const overflowBottom = Math.max(0, top + cardRect.height - (viewportHeight - padding));
+      const overflowBottom = Math.max(
+        0,
+        top + cardRect.height - (viewportHeight - padding),
+      );
       const score = overflowLeft + overflowRight + overflowTop + overflowBottom;
 
       return {
@@ -600,7 +636,8 @@
         left: clampedLeft,
         top: clampedTop,
         score,
-        distanceFromTarget: Math.abs(clampedLeft - left) + Math.abs(clampedTop - top),
+        distanceFromTarget:
+          Math.abs(clampedLeft - left) + Math.abs(clampedTop - top),
         fits:
           left >= padding &&
           top >= padding &&
@@ -670,10 +707,14 @@
 
     if (els.tourTitle) els.tourTitle.textContent = step.title;
     if (els.tourBody) els.tourBody.textContent = step.body;
-    if (els.tourStepLabel) els.tourStepLabel.textContent = `Step ${stepNumber} of ${total}`;
-    if (els.tourProgressFill) els.tourProgressFill.style.width = `${(stepNumber / total) * 100}%`;
+    if (els.tourStepLabel)
+      els.tourStepLabel.textContent = `Step ${stepNumber} of ${total}`;
+    if (els.tourProgressFill)
+      els.tourProgressFill.style.width = `${(stepNumber / total) * 100}%`;
     if (els.tourBackBtn) els.tourBackBtn.disabled = currentTourIndex === 0;
-    if (els.tourNextBtn) els.tourNextBtn.textContent = currentTourIndex === total - 1 ? "Finish" : "Next";
+    if (els.tourNextBtn)
+      els.tourNextBtn.textContent =
+        currentTourIndex === total - 1 ? "Finish" : "Next";
 
     setTourVisible(true);
     requestAnimationFrame(() => {
@@ -759,13 +800,20 @@
     els.themeToggleBtn.classList.toggle("is-dark", isDark);
     els.themeToggleBtn.setAttribute("aria-pressed", isDark ? "true" : "false");
     els.themeToggleLabel.textContent = isDark ? "Dark" : "Light";
-    setTooltip(els.themeToggleBtn, `Switch to ${isDark ? "light" : "dark"} mode`, "bottom");
+    setTooltip(
+      els.themeToggleBtn,
+      `Switch to ${isDark ? "light" : "dark"} mode`,
+      "bottom",
+    );
   }
 
   function closeDropdowns(skipTour = false) {
     els.menuDropdown.hidden = true;
     els.exportDropdown.hidden = true;
     els.settingsPanel.hidden = true;
+    if (els.versionPanel) {
+      els.versionPanel.hidden = true;
+    }
     hideTooltip();
     if (!skipTour) {
       closeTour(false);
@@ -787,6 +835,23 @@
       updateContrastButton();
       updateBrightnessButton();
     }
+  }
+
+  function openExternalLink(url) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function toggleVersionPanel(force) {
+    const shouldOpen =
+      typeof force === "boolean" ? force : els.versionPanel.hidden;
+    closeDropdowns();
+    els.versionPanel.hidden = !shouldOpen;
   }
 
   function toggleDropdown(dropdown, trigger, force) {
@@ -823,7 +888,10 @@
 
   function updateInvertButton() {
     els.invertToggle.classList.toggle("active", state.invert);
-    els.invertToggle.setAttribute("aria-pressed", state.invert ? "true" : "false");
+    els.invertToggle.setAttribute(
+      "aria-pressed",
+      state.invert ? "true" : "false",
+    );
   }
 
   function updateModeButton() {
@@ -853,14 +921,21 @@
     const columns = ASCII_BASE_WIDTH * scale;
     els.densityLabel.textContent = `${scale}x`;
     els.densityBtn.setAttribute("aria-pressed", scale === 1 ? "false" : "true");
-    setTooltip(els.densityBtn, `Column density ${scale}x, ${columns} columns`, "top");
+    setTooltip(
+      els.densityBtn,
+      `Column density ${scale}x, ${columns} columns`,
+      "top",
+    );
   }
 
   function cycleDensity() {
     state.densityIndex = (state.densityIndex + 1) % DENSITY_LEVELS.length;
     updateDensityButton();
     const scale = DENSITY_LEVELS[state.densityIndex] || 1;
-    setStatus(`Density set to ${scale}x (${ASCII_BASE_WIDTH * scale} cols).`, "");
+    setStatus(
+      `Density set to ${scale}x (${ASCII_BASE_WIDTH * scale} cols).`,
+      "",
+    );
     queueRender();
   }
 
@@ -897,7 +972,11 @@
       setIcon(els.exportSelectedIcon, selectedIcon);
     }
     if (els.exportDefaultBtn) {
-      setTooltip(els.exportDefaultBtn, `Export current format: ${selectedLabel}`, "top");
+      setTooltip(
+        els.exportDefaultBtn,
+        `Export current format: ${selectedLabel}`,
+        "top",
+      );
     }
     if (els.exportSelectedBtn) {
       setTooltip(els.exportSelectedBtn, `Export as ${selectedLabel}`, "top");
@@ -924,7 +1003,8 @@
 
   function updateToneValues() {
     els.contrastValue.textContent = `${state.contrast}%`;
-    els.brightnessValue.textContent = state.brightness > 0 ? `+${state.brightness}` : String(state.brightness);
+    els.brightnessValue.textContent =
+      state.brightness > 0 ? `+${state.brightness}` : String(state.brightness);
     updateRangeFill(els.contrastSlider);
     updateRangeFill(els.brightnessSlider);
   }
@@ -943,7 +1023,11 @@
     const naturalHeight = image.naturalHeight || image.height || 180;
     const maxWidth = Math.max(180, Math.min(window.innerWidth - 36, 420));
     const maxHeight = Math.max(120, Math.min(window.innerHeight - 120, 320));
-    const scale = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight, 1);
+    const scale = Math.min(
+      maxWidth / naturalWidth,
+      maxHeight / naturalHeight,
+      1,
+    );
     const width = Math.max(120, Math.round(naturalWidth * scale));
     const height = Math.max(90, Math.round(naturalHeight * scale));
 
@@ -967,7 +1051,7 @@
     const fitScale = Math.min(
       (viewport.width - 24) / contentWidth,
       (viewport.height - 24) / contentHeight,
-      1
+      1,
     );
     const contentScale = state.zoom * fitScale;
     const scaledWidth = contentWidth * contentScale;
@@ -980,7 +1064,10 @@
 
     els.viewportContent.style.setProperty("--zoom", String(state.zoom));
     els.viewportContent.style.setProperty("--fit-scale", String(fitScale));
-    els.viewportContent.style.setProperty("--content-scale", String(contentScale));
+    els.viewportContent.style.setProperty(
+      "--content-scale",
+      String(contentScale),
+    );
     els.viewportContent.style.setProperty("--pan-x", `${state.panX}px`);
     els.viewportContent.style.setProperty("--pan-y", `${state.panY}px`);
   }
@@ -1032,7 +1119,11 @@
       setStatus("Rendering ASCII...", "");
       await new Promise((resolve) => setTimeout(resolve, 8));
       const scale = DENSITY_LEVELS[state.densityIndex] || 1;
-      const result = AsciiLogic.convertImageToAscii(state.imageElement, ASCII_BASE_WIDTH * scale, state);
+      const result = AsciiLogic.convertImageToAscii(
+        state.imageElement,
+        ASCII_BASE_WIDTH * scale,
+        state,
+      );
       state.asciiText = result.ascii;
       els.asciiOutput.textContent = result.ascii;
       setStatus(`${result.columns} cols x ${result.rows} rows`, "success");
@@ -1152,7 +1243,7 @@
         document.execCommand("copy");
         document.body.removeChild(textarea);
         setStatus("Copied ASCII text.", "success");
-      }
+      },
     );
   }
 
@@ -1178,7 +1269,11 @@
       return;
     }
     closeDropdowns();
-    exportText(getExportBaseName("svg"), buildSvgDocument(scale), "image/svg+xml;charset=utf-8");
+    exportText(
+      getExportBaseName("svg"),
+      buildSvgDocument(scale),
+      "image/svg+xml;charset=utf-8",
+    );
     setStatus("SVG exported.", "success");
   }
 
@@ -1225,7 +1320,11 @@
         return;
       }
       closeDropdowns();
-      exportText(getExportBaseName("txt"), state.asciiText, "text/plain;charset=utf-8");
+      exportText(
+        getExportBaseName("txt"),
+        state.asciiText,
+        "text/plain;charset=utf-8",
+      );
       setStatus("TXT exported.", "success");
       return;
     }
@@ -1320,7 +1419,9 @@
   }
 
   function updateShortcutsOnKeyDown(event) {
-    const isEditable = ["INPUT", "TEXTAREA"].includes(document.activeElement && document.activeElement.tagName);
+    const isEditable = ["INPUT", "TEXTAREA"].includes(
+      document.activeElement && document.activeElement.tagName,
+    );
     if (isEditable) return;
 
     if (event.code === "Space") {
@@ -1383,6 +1484,20 @@
       closeDropdowns();
       startTour(true);
       setStatus("Tour opened.", "");
+    });
+    els.joinUsItem.addEventListener("click", () => {
+      closeDropdowns();
+      openExternalLink("https://discord.gg/Y24autEQG9");
+      setStatus("Join Us opened in a new tab.", "");
+    });
+    els.communityItem.addEventListener("click", () => {
+      closeDropdowns();
+      openExternalLink("https://www.figma.com/@dimastudio");
+      setStatus("Community opened in a new tab.", "");
+    });
+    els.versionNoteItem.addEventListener("click", () => {
+      toggleVersionPanel(true);
+      setStatus("Version note opened.", "");
     });
 
     els.exportDefaultBtn.addEventListener("click", exportDefaultAscii);
@@ -1453,7 +1568,10 @@
     els.panToolBtn.addEventListener("click", () => {
       state.panToolActive = !state.panToolActive;
       updatePanButton();
-      setStatus(state.panToolActive ? "Pan tool enabled." : "Pan tool disabled.", "");
+      setStatus(
+        state.panToolActive ? "Pan tool enabled." : "Pan tool disabled.",
+        "",
+      );
     });
 
     els.zoomInBtn.addEventListener("click", () => updateZoom(0.1));
@@ -1477,6 +1595,12 @@
     document.querySelectorAll("[data-close-settings]").forEach((button) => {
       button.addEventListener("click", () => {
         els.settingsPanel.hidden = true;
+      });
+    });
+
+    document.querySelectorAll("[data-close-version]").forEach((button) => {
+      button.addEventListener("click", () => {
+        els.versionPanel.hidden = true;
       });
     });
 
@@ -1603,6 +1727,9 @@
     els.settingsItem = $("settingsItem");
     els.resetItem = $("resetItem");
     els.helpItem = $("helpItem");
+    els.joinUsItem = $("joinUsItem");
+    els.communityItem = $("communityItem");
+    els.versionNoteItem = $("versionNoteItem");
     els.viewport = $("viewport");
     els.viewportContent = $("viewportContent");
     els.asciiOutput = $("asciiOutput");
@@ -1634,6 +1761,7 @@
     els.exportSelectedIcon = $("exportSelectedIcon");
     els.exportSelectedLabel = $("exportSelectedLabel");
     els.settingsPanel = $("settingsPanel");
+    els.versionPanel = $("versionPanel");
     els.tourOverlay = $("tourOverlay");
     els.tourCard = $("tourCard");
     els.tourSpotlight = $("tourSpotlight");
@@ -1684,4 +1812,3 @@
     init();
   }
 })();
-
